@@ -1,0 +1,103 @@
+###### General info and abundance tables #########
+## we use fully filtered data
+# Convert the OTU and taxonomy tables into a data frame
+otus <- as.data.frame(data.3@otu_table)
+otus <- cbind(otus, rownames(otus))
+colnames(otus)[length(otus)] <- "OTU"
+tax <- as.data.frame(data.3@tax_table)
+tax <- cbind(tax, rownames(tax))
+colnames(tax)[length(tax)] <- "OTU"
+## Merge the tables
+otu_tax <- dplyr::left_join(otus, tax, by = "OTU")
+## Calculate the total number of reads for each OTU and add a column to the data frame
+otu_tax <- cbind(otu_tax, rowSums(otu_tax[,1:84]))
+colnames(otu_tax)[92] <- "TotalCount"
+## Remove unwanted levels and rename NA columns to "undefined"
+otu_tax$Phylum <- droplevels(otu_tax$Phylum)
+levels(otu_tax$Phylum) <- c(levels(otu_tax$Phylum), "undefined") 
+otu_tax$Phylum[is.na(otu_tax$Phylum)] <- "undefined"
+levels(otu_tax$Genus) <- c(levels(otu_tax$Genus), "undefined") 
+otu_tax$Genus[is.na(otu_tax$Genus)] <- "undefined"
+
+## Make a table with phyla abundance from the unadjusted counts
+TotalPhylaCounts <- as.data.frame(aggregate(TotalCount ~ Phylum, FUN = sum, data=otu_tax))
+TotalPhylaCounts <- dplyr::arrange(TotalPhylaCounts, desc(TotalCount))
+## Calculate percentages
+TotalPhylaCounts <- cbind(TotalPhylaCounts,(TotalPhylaCounts$TotalCount*100)/sum(TotalPhylaCounts$TotalCount))
+colnames(TotalPhylaCounts)[3] <- "Abundance"
+## Check if all reads add up to the total read count of 1138875
+#sum(TotalPhylaCounts$TotalCount)1138875
+## Count the number of OTUs for each phylum
+df <- data.frame(Phylum=character(),NoOTUs = integer(), stringsAsFactors=FALSE) 
+for (i in TotalPhylaCounts$Phylum) {
+  len <- length(which(otu_tax$Phylum == i))
+  df2 <- as.data.frame(cbind(Phylum = i, NoOTUs = len),stringsAsFactors=FALSE)
+  df <- rbind(df,df2)
+}
+df$NoOTUs <- as.numeric(df$NoOTUs)
+## Add this information to the abundance table
+TotalPhylaCounts <- dplyr::left_join(TotalPhylaCounts,df, tax, by = "Family")
+colnames(TotalPhylaCounts) <- c("Family","Read Count", "Abundance (%)", "No of. OTUs")
+
+# Make a table for phyla abundance
+kable(TotalPhylaCounts ,format = "html", digits = 2, row.names = FALSE, caption = "Table 1. Bacterial phyla detected in ZF and BF gut microbiome.") %>%
+  kable_styling(bootstrap_options = c("condensed","striped"), full_width = F)
+
+write.csv(TotalPhylaCounts,"Total_Phylum_counts_Abund_fullyFilteredData_UrbanPr.csv")
+
+#### Same Family level
+## Make a table with phyla abundance from the unadjusted counts
+TotalFamilyCounts <- as.data.frame(aggregate(TotalCount ~ Family, FUN = sum, data=otu_tax))
+TotalFamilyCounts <- dplyr::arrange(TotalFamilyCounts, desc(TotalCount))
+## Calculate percentages
+TotalFamilyCounts <- cbind(TotalFamilyCounts,(TotalFamilyCounts$TotalCount*100)/sum(TotalFamilyCounts$TotalCount))
+colnames(TotalFamilyCounts)[3] <- "Abundance"
+## Check if all reads add up to the total read count of 1138875
+#sum(TotalFamilyCounts$TotalCount)1138875
+## Count the number of OTUs for each phylum
+df <- data.frame(Family=character(),NoOTUs = integer(), stringsAsFactors=FALSE) 
+for (i in TotalFamilyCounts$Family) {
+  len <- length(which(otu_tax$Family == i))
+  df2 <- as.data.frame(cbind(Family = i, NoOTUs = len),stringsAsFactors=FALSE)
+  df <- rbind(df,df2)
+}
+df$NoOTUs <- as.numeric(df$NoOTUs)
+## Add this information to the abundance table
+TotalFamilyCounts <- dplyr::left_join(TotalFamilyCounts,df, tax, by = "Family")
+colnames(TotalFamilyCounts) <- c("Family","Read Count", "Abundance (%)", "No of. OTUs")
+
+# Make a table for Family abundance
+kable(TotalFamilyCounts ,format = "html", digits = 2, row.names = FALSE, caption = "Table 1. Bacterial Family detected in ZF and BF gut microbiome.") %>%
+  kable_styling(bootstrap_options = c("condensed","striped"), full_width = F)
+
+write.csv(TotalFamilyCounts,"Total_Family_counts_Abund_fullyFilteredData_UrbanPr.csv")
+
+
+#### Info about read counts after each filteration step ###################
+## original after excluding some of the samples data.0
+ntaxa(data.0)
+sum_counts_0 <- sum(sample_sums(data.0))
+min_counts_0 <- min(sample_sums(data.0))
+mean_counts_0 <- mean(sample_sums(data.0))
+max_counts_0 <- max(sample_sums(data.0))
+#after filteration of Chloro/Mitochondria
+#data.1
+ntaxa(data.1)
+sum_counts_1 <- sum(sample_sums(data.1))
+min_counts_1 <- min(sample_sums(data.1))
+mean_counts_1 <- mean(sample_sums(data.1))
+max_counts_1 <- max(sample_sums(data.1))
+                                          
+# afterrare otus data.3
+ntaxa(data.3)
+sum_counts_3 <- sum(sample_sums(data.3))
+min_counts_3 <- min(sample_sums(data.3))
+mean_counts_3 <- mean(sample_sums(data.3))
+max_counts_3<- max(sample_sums(data.3))
+
+# rerafy_data rarefy_data
+ntaxa(rarefy_data)
+sum_counts_rarefy_data <- sum(sample_sums(rarefy_data))
+min_counts_rarefy_data <- min(sample_sums(rarefy_data))
+mean_counts_rarefy_data <- mean(sample_sums(rarefy_data))
+max_counts_rarefy_data<- max(sample_sums(rarefy_data))
